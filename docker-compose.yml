@@ -1,0 +1,120 @@
+version: '3.7'
+# Author A.Nekofar@ipaam.ir
+
+services:
+  
+  app:
+    build:
+      context: .
+      dockerfile: ./app/Dockerfile
+    container_name: 'app-aban'
+    restart: 'always'
+    environment:
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
+      - ENV_NAME=${ENV_NAME}
+    network_mode: "host"
+    ports:
+      - 8000:8000
+    volumes:
+      - type: 'bind'
+        source: './volumes/app'
+        target: '/app'
+    depends_on:
+      - db
+      - redis
+      - rabbit
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -O /dev/null http://127.0.0.1:8000/admin  || exit 1"
+        ]
+      interval: 300s
+      timeout: 10s
+      retries: 3
+
+  nginx:
+    build: ./nginx
+    container_name: 'nginx-aban'
+    restart: 'always'
+    network_mode: "host"
+    ports:
+      - 80:80
+    depends_on:
+      - app
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -O /dev/null http://127.0.0.1/admin  || exit 1"
+        ]
+      interval: 300s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - ./volumes/app/static:/app/static
+      - ./volumes/app/features:/app/features
+
+  db:
+      image: postgres:latest
+      container_name: 'db-aban'
+      environment:
+        POSTGRES_DB: ${POSTGRES_DB}
+        POSTGRES_USER: ${POSTGRES_USER}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        PGDATA: ${PGDATA}
+      volumes:
+        - db_aban:/volumes/dbdata
+      network_mode: "host"
+      ports:
+        - "5432:5432"
+      restart: unless-stopped
+
+
+  redis:
+    image: redis:latest
+    container_name: 'redis-aban'
+    restart: 'always'
+    network_mode: "host"
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 300s
+      timeout: 10s
+      retries: 3
+
+  rabbit:
+    container_name: 'rabbit-aban'
+    image: rabbitmq:3-management
+    user: "rabbitmq:rabbitmq"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=mypass
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_log:/var/log/rabbitmq
+    command:
+      [
+        "bash",
+        "-c",
+        "chmod 400 /var/lib/rabbitmq/.erlang.cookie; rabbitmq-server"
+      ]
+    network_mode: "host"
+
+
+volumes:
+  rabbitmq_data:
+  rabbitmq_log:
+  redis_data:
+  db_aban:
+      external: true
+
+
