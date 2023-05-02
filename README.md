@@ -44,6 +44,18 @@ docker-compose up -d
 ```text
 - url admin : localhost/admin
 - url apis  : localhost/api-auth/login/
+- url get list of currency : localhost/api-exchange/
+- url get list of wallets : localhost/api-balance OR /api-balance/?balance_currency=usd
+- url get balance check of currency you want change: localhost/api-exchange/get-wallet/?balance_currency=usd&convert_currency=ABA
+- url get list confirm change : localhost/api-exchange/confirm-change/?convert_currency=ABA
+- url post confirm change : localhost/api-exchange/confirm-change/?convert_currency=ABA
+example post data {
+    "balance_currency": USD,
+    "balance_amount": 100,
+    "converted_currency": ABA,
+    "confirm_converted": 1234
+}
+
 ```
 
 # Devloper Options

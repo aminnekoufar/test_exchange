@@ -50,7 +50,7 @@ class ConvertCheckView(generics.ListAPIView):
             "balance_currency" : wallet.currency,
             "balance_amount" : wallet.amount,
             "converted_currency": convert_currency,
-            "converted_amount": data.convert(wallet,convert_currency),
+            "converted_amount": data.convert(wallet,wallet.amount,convert_currency),
         }
         respond = checkSerializer(res)
         return Response(respond.data,status=200)
